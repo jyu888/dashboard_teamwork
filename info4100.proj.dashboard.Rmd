@@ -65,12 +65,16 @@ library(tidyverse)
 # Below you are loading 2 new packages:shiny + shinydashboard.
 # Install them once, then comment out the install command.
 
- install.packages("shiny")
+#install.packages("shiny")
+
 library(shiny)
+
+#install.packages("patchwork")
 
 library(patchwork)
 
-install.packages("shinydashboard")
+#install.packages("shinydashboard")
+
 library(shinydashboard)
 
 # This should load the datasets: 
@@ -88,34 +92,52 @@ Go through the planning / sketching process described in the reading about dashb
 
 -   For whom? Who will use it and what is their background?
     -   [For both student and instructors ]
-    -   [add your answer here]
+    -   [Primarily for students enrolled in the Business Intelligence course. These users are undergraduate or graduate students with varying technical backgrounds, some of whom may have limited experience in databases, SQL, or BI tools. They are familiar with iClicker-based participation and receive feedback via online platforms.]
+    
 -   Why? What is the goal? What questions to answer?
     -   [To give personalized, actionable feedback on their engagement and performance]
     -   [Help student self-assess compared and push them to take initiative]
-    -   [Spot and notify students who are falling behind early]
+    -   [Spot and notify students who are falling behind early — for example, low attendance, low quiz scores, or declining temperature scores]
+    -   [Prompt reflection on learning confidence and performance trends over time]
+    
 -   What? What data to show and what is its structure?
     -   [sum(attended) / total sessions to calculate attendance Rate]
     -   [sum(total_completed_clicker) / sum(total_possible_clicker) for Clicker Response Rate]
     -   [Percentile Ranking in Class: Quiz score percentile]
+    -   [Line chart of quiz performance over time with overlay of avg_t_clicker for confidence tracking]
+    -   [Skill Radar Chart: Self-reported skill levels compared to class average]
+    
 -   How? How will visualizations support the goal?
     -   [Give a clear visual representation of attendance is dropping at certain points ]
     -   [Highlight which quizzes/topics need review]
-    -   [Show students positive/negative learning trend]
+    -   [Show students positive/negative learning trend using score-over-time visualization with color-coded performance zones]
+    -   [Display comparative context (e.g., class average) anonymously to help students interpret their standing without compromising peer privacy]
 
 *Planning for the teacher dashboard*
 
 -   For whom? Who will use it and what is their background?
-    -   [add your answer here]
-    -   [add your answer here]
+    -   [Instructors of the Business Intelligence course at Cornell University]
+    -   [They are experienced educators with interest in student analytics, likely familiar with concepts from BI, and looking for actionable insights to improve teaching and student success]
+    
 -   Why? What is the goal? What questions to answer?
-    -   [add your answer here]
-    -   [add your answer here]
+    -   [To monitor overall class engagement, performance, and mood over time]
+    -   [Identify students who are at risk (low attendance and low scores) for early intervention]
+    -   [Understand which topics or sessions led to confusion (via temperature trends and quiz scores)]
+    -   [Assess whether self-reported skill levels correlate with student outcomes]
+    
 -   What? What data to show and what is its structure?
-    -   [add your answer here]
-    -   [add your answer here]
+    -   [Average attendance per session; quiz score distributions per session or per quiz]
+    -   [Heatmaps or timelines of mood trends via avg_t_clicker aggregated by session]
+    -   [Histograms or boxplots of self-reported skill scores, grouped by GRAD/UGRAD]
+    -   [Interactive table of at-risk students (e.g., attendance < 70%, avg quiz score < 60%)]
+    -   [Correlation charts between skill_survey_score and engagement/performance metrics]
+
 -   How? How will visualizations support the goal?
-    -   [add your answer here]
-    -   [add your answer here]
+    -   [Use line charts and heatmaps to show trends across the semester in attendance, quiz performance, and mood—helping instructors identify when and where issues arise]
+    -   [Use boxplots and bar charts to explore the distribution of skills and their relationship to success]
+    -   [Provide interactive filters and sortable tables to easily find and support struggling students]
+    -   [Group visualizations hierarchically (overview > session detail > individual student), supporting both broad and granular insights]
+
 
 **Question 2:** Based on your plan above, make a sketch of what the dashboard would look like. See this week's readings for examples. Be detailed about what kinds of data points and visualizations you want to see in different parts of the page. Consider the user experience and how you should position more general information compared to more specific information, and where you may need some additional explanation to help the viewer understand a graphic, for example. In your sketch, it is useful to give labels to different objects, because in the steps below you can split up work between team members and the labels will help you connect the UI with the data objects. Show your sketches in section to get feedback from the teaching team.
 
@@ -133,37 +155,93 @@ Your team can split up the tasks. Some work on creating the UI (this part), whil
 #######################################
 ####### BEGIN INPUT: Question 3 #######
 #######################################
-# Example of a tab (i.e. page)
+library(DT)
+
+# Instructor Dashboard Tab
 instructor_dash = tabItem(
-    tabName = "instructor",
-    h2("Instructor Dashboard"),
-    
-    # Dynamic infoBoxes
-    fluidRow(
-      infoBoxOutput("inst.info1"),
-      infoBoxOutput("inst.info2")
+  tabName = "instructor",
+  h2("Instructor Dashboard"),
+
+  # Top KPIs
+  fluidRow(
+    infoBoxOutput("inst.avgAttendance"),
+    infoBoxOutput("inst.avgScore"),
+    infoBoxOutput("inst.atRiskCount")
+  ),
+
+  # Session Trends
+  fluidRow(
+    box(
+      title = "Attendance Over Time",
+      plotOutput("inst.attendanceTrend", height = 300),
+      width = 6
     ),
-    # Any visualization
-    fluidRow(
-        box(
-            title = "Box 1",
-            plotOutput("inst.plot1", height = 250)
-        ),
-        box(
-            title = "Box 2",
-            plotOutput("inst.plot2", height = 250)
-        )
+    box(
+      title = "Mood (avg_t_clicker) Over Time",
+      plotOutput("inst.moodTrend", height = 300),
+      width = 6
     )
+  ),
+
+  # Performance and Risk Analysis
+  fluidRow(
+    box(
+      title = "Quiz Score Distribution by Quiz Number",
+      plotOutput("inst.quizDistribution", height = 300),
+      width = 6
+    ),
+    box(
+      title = "At-Risk Students",
+      DT::dataTableOutput("inst.riskTable"),
+      width = 6
+    )
+  )
 )
 
-# Another empty tab
+# Student Dashboard Tab
 student_dash = tabItem(
   tabName = "student",
-  h2("Student Dashboard")
+  h2("Student Dashboard"),
+
+  # Personal Summary
+  fluidRow(
+    infoBoxOutput("stud.percentileRank"),
+    infoBoxOutput("stud.attendanceRate"),
+    infoBoxOutput("stud.clickerRate")
+  ),
+
+  # Performance Over Time
+  fluidRow(
+    box(
+      title = "Quiz Scores Over Time",
+      plotOutput("stud.quizTrend", height = 300),
+      width = 6
+    ),
+    box(
+      title = "Mood Over Time",
+      plotOutput("stud.moodTrend", height = 300),
+      width = 6
+    )
+  ),
+
+  # Skill Self-Assessment
+  fluidRow(
+    box(
+      title = "Skill Radar Chart",
+      plotOutput("stud.skillRadar", height = 300),
+      width = 6
+    ),
+    box(
+      title = "Class Average Comparison",
+      plotOutput("stud.skillBar", height = 300),
+      width = 6
+    )
+  )
 )
 
 #######################################
 #######################################
+
 ```
 
 # Part 3: Data Pre-processing
@@ -174,11 +252,11 @@ The instructor dashboard should show information for all students. The student d
 
 Use the space below to be ready for your information visualizations in the dashboards.
 
+
 ```{r}
 #######################################
 ####### BEGIN INPUT             #######
 #######################################
-
 
 # ===============================
 # 1. QUIZ Data Pre-processing
@@ -190,13 +268,10 @@ quiz_clean <- quiz %>%
          !is.na(QUIZ_SCORE),  
          !is.na(ATTENDED)) %>%  
   mutate(
-    ATTENDED = ifelse(ATTENDED %in% c(0,1), ATTENDED, NA) 
+    ATTENDED = ifelse(ATTENDED %in% c(0,1), ATTENDED, NA),
+    AVG_T_CLICKER = ifelse(AVG_T_CLICKER >= 0 & AVG_T_CLICKER <= 5, AVG_T_CLICKER, NA)
   ) %>%
   filter(!is.na(ATTENDED))   
-
-
-attendance_rate <- mean(student_dash$ATTENDED, na.rm = TRUE)
-
 
 # Quick session-level summary (for Instructor view later)
 session_summary <- quiz_clean %>%
@@ -208,7 +283,6 @@ session_summary <- quiz_clean %>%
     n_students = n(),
     .groups = 'drop' 
   )
-
 
 # Quick student-level summary (for Student view later)
 student_summary <- quiz_clean %>%
@@ -227,16 +301,43 @@ student_summary <- quiz_clean %>%
 # 2. EXPERIENCE Data Pre-processing
 # ===============================
 
-# Clean experience dataset
+# Clean experience dataset and include all skill-related fields
 experience_clean <- experience %>%
-  mutate(
-    SKILL_SURVEY_SCORE = ifelse(is.na(SKILL_SURVEY_SCORE), 0, SKILL_SURVEY_SCORE) # Replace missing skill score with 0
-  )
+  select(
+    STUDENT_KEY,
+    PROG,
+    DATABASE_SCORE,
+    SQL_SCORE,
+    PROGRAMING_SCORE,
+    STORED_PROC_SCORE,
+    ETL_SCORE,
+    DATA_VIS_SCORE,
+    REQUIREMENT_GATHER_SCORE,
+    SKILL_SURVEY_SCORE
+  ) %>%
+  mutate(across(
+    c(DATABASE_SCORE, SQL_SCORE, PROGRAMING_SCORE, STORED_PROC_SCORE,
+      ETL_SCORE, DATA_VIS_SCORE, REQUIREMENT_GATHER_SCORE, SKILL_SURVEY_SCORE),
+    ~ ifelse(is.na(.x), 0, .x)
+  ))
 
 # Merge experience skill level into student summary
 student_full_summary <- student_summary %>%
-  left_join(experience_clean %>% select(STUDENT_KEY, PROG, SKILL_SURVEY_SCORE), by = "STUDENT_KEY")
+  left_join(experience_clean, by = "STUDENT_KEY")
 
+# Calculate class-wide skill averages for comparison visualizations
+skill_averages <- experience_clean %>%
+  summarise(across(
+    c(DATABASE_SCORE, SQL_SCORE, PROGRAMING_SCORE, STORED_PROC_SCORE,
+      ETL_SCORE, DATA_VIS_SCORE, REQUIREMENT_GATHER_SCORE),
+    ~ round(mean(.x, na.rm = TRUE), 2)
+  )) %>%
+  mutate(Source = "Class Average") %>%
+  relocate(Source)
+
+# ========== SAVE FOR SHINY ==========
+saveRDS(session_summary, "session_summary.rds")
+saveRDS(student_full_summary, "student_full_summary.rds")
 
 #######################################
 #######################################
@@ -583,6 +684,113 @@ shinyApp(ui = ui, server = server)
 
 
 
+
+
+```
+
+```{r}
+
+# ===============================
+# Professor Dashbaord Part 1
+# ===============================
+
+library(shiny)
+library(shinydashboard)
+library(ggplot2)
+library(DT)
+
+# Load preprocessed data
+session_summary <- readRDS("session_summary.rds")
+student_full_summary <- readRDS("student_full_summary.rds")
+
+# UI
+ui <- dashboardPage(
+  dashboardHeader(title = "Instructor Dashboard"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Instructor Dashboard", tabName = "instructor", icon = icon("chalkboard-teacher"))
+    )
+  ),
+  dashboardBody(
+    tabItems(
+      tabItem(
+        tabName = "instructor",
+        h2("Instructor Dashboard"),
+
+        # KPI Boxes
+        fluidRow(
+          infoBoxOutput("avgAttendance"),
+          infoBoxOutput("avgScore"),
+          infoBoxOutput("atRiskCount")
+        ),
+
+        # Session Trends
+        fluidRow(
+          box(title = "Attendance Over Time", plotOutput("attendanceTrend"), width = 6),
+          box(title = "Mood (avg_t_clicker) Over Time", plotOutput("moodTrend"), width = 6)
+        ),
+
+        # Performance and Risk Analysis
+        fluidRow(
+          box(title = "Quiz Score Distribution by Session", plotOutput("scoreTrend"), width = 6),
+          box(title = "At-Risk Students", DTOutput("riskTable"), width = 6)
+        )
+      )
+    )
+  )
+)
+
+# Server
+server <- function(input, output) {
+
+  output$avgAttendance <- renderInfoBox({
+    avg_att <- mean(session_summary$session_attendance_rate, na.rm = TRUE)
+    infoBox("Avg Attendance", paste0(round(avg_att * 100, 1), "%"), icon = icon("user-check"), color = "aqua")
+  })
+
+  output$avgScore <- renderInfoBox({
+    avg_score <- mean(session_summary$avg_quiz_score, na.rm = TRUE)
+    infoBox("Avg Quiz Score", round(avg_score, 1), icon = icon("chart-line"), color = "green")
+  })
+
+  output$atRiskCount <- renderInfoBox({
+    at_risk <- student_full_summary %>% filter(student_attendance_rate < 0.7 | avg_quiz_score < 12)
+    infoBox("At-Risk Students", nrow(at_risk), icon = icon("exclamation-triangle"), color = "red")
+  })
+
+  output$attendanceTrend <- renderPlot({
+    ggplot(session_summary, aes(x = SESSION_NUMBER, y = session_attendance_rate)) +
+      geom_line(color = "steelblue") +
+      geom_point() +
+      labs(title = "Attendance Rate per Session", y = "Attendance Rate", x = "Session") +
+      theme_minimal()
+  })
+
+  output$moodTrend <- renderPlot({
+    ggplot(session_summary, aes(x = SESSION_NUMBER, y = avg_temperature)) +
+      geom_line(color = "tomato") +
+      geom_point() +
+      labs(title = "Average Mood per Session", y = "Avg Temperature (Mood)", x = "Session") +
+      theme_minimal()
+  })
+
+  output$scoreTrend <- renderPlot({
+    ggplot(session_summary, aes(x = SESSION_NUMBER, y = avg_quiz_score)) +
+      geom_line(color = "darkgreen") +
+      geom_point() +
+      labs(title = "Quiz Score Trend", y = "Avg Quiz Score", x = "Session") +
+      theme_minimal()
+  })
+
+  output$riskTable <- renderDT({
+    student_full_summary %>%
+      filter(student_attendance_rate < 0.7 | avg_quiz_score < 12) %>%
+      select(STUDENT_KEY, student_attendance_rate, avg_quiz_score)
+  })
+}
+
+# Run the application
+shinyApp(ui = ui, server = server)
 
 
 ```
