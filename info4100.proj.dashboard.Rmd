@@ -147,7 +147,7 @@ Your team can split up the tasks. Some work on creating the UI (this part), whil
 ```{r}
 #######################################
 ####### BEGIN INPUT: Question 3 #######
-#######################################
+
 library(DT)
 
 # Instructor Dashboard Tab
