@@ -93,20 +93,17 @@ Go through the planning / sketching process described in the reading about dashb
 -   For whom? Who will use it and what is their background?
     -   [For both student and instructors ]
     -   [Primarily for students enrolled in the Business Intelligence course. These users are undergraduate or graduate students with varying technical backgrounds, some of whom may have limited experience in databases, SQL, or BI tools. They are familiar with iClicker-based participation and receive feedback via online platforms.]
-    
 -   Why? What is the goal? What questions to answer?
     -   [To give personalized, actionable feedback on their engagement and performance]
     -   [Help student self-assess compared and push them to take initiative]
     -   [Spot and notify students who are falling behind early — for example, low attendance, low quiz scores, or declining temperature scores]
     -   [Prompt reflection on learning confidence and performance trends over time]
-    
 -   What? What data to show and what is its structure?
     -   [sum(attended) / total sessions to calculate attendance Rate]
     -   [sum(total_completed_clicker) / sum(total_possible_clicker) for Clicker Response Rate]
     -   [Percentile Ranking in Class: Quiz score percentile]
     -   [Line chart of quiz performance over time with overlay of avg_t_clicker for confidence tracking]
     -   [Skill Radar Chart: Self-reported skill levels compared to class average]
-    
 -   How? How will visualizations support the goal?
     -   [Give a clear visual representation of attendance is dropping at certain points ]
     -   [Highlight which quizzes/topics need review]
@@ -118,26 +115,22 @@ Go through the planning / sketching process described in the reading about dashb
 -   For whom? Who will use it and what is their background?
     -   [Instructors of the Business Intelligence course at Cornell University]
     -   [They are experienced educators with interest in student analytics, likely familiar with concepts from BI, and looking for actionable insights to improve teaching and student success]
-    
 -   Why? What is the goal? What questions to answer?
     -   [To monitor overall class engagement, performance, and mood over time]
     -   [Identify students who are at risk (low attendance and low scores) for early intervention]
     -   [Understand which topics or sessions led to confusion (via temperature trends and quiz scores)]
     -   [Assess whether self-reported skill levels correlate with student outcomes]
-    
 -   What? What data to show and what is its structure?
     -   [Average attendance per session; quiz score distributions per session or per quiz]
     -   [Heatmaps or timelines of mood trends via avg_t_clicker aggregated by session]
     -   [Histograms or boxplots of self-reported skill scores, grouped by GRAD/UGRAD]
-    -   [Interactive table of at-risk students (e.g., attendance < 70%, avg quiz score < 60%)]
+    -   [Interactive table of at-risk students (e.g., attendance \< 70%, avg quiz score \< 60%)]
     -   [Correlation charts between skill_survey_score and engagement/performance metrics]
-
 -   How? How will visualizations support the goal?
     -   [Use line charts and heatmaps to show trends across the semester in attendance, quiz performance, and mood—helping instructors identify when and where issues arise]
     -   [Use boxplots and bar charts to explore the distribution of skills and their relationship to success]
     -   [Provide interactive filters and sortable tables to easily find and support struggling students]
-    -   [Group visualizations hierarchically (overview > session detail > individual student), supporting both broad and granular insights]
-
+    -   [Group visualizations hierarchically (overview \> session detail \> individual student), supporting both broad and granular insights]
 
 **Question 2:** Based on your plan above, make a sketch of what the dashboard would look like. See this week's readings for examples. Be detailed about what kinds of data points and visualizations you want to see in different parts of the page. Consider the user experience and how you should position more general information compared to more specific information, and where you may need some additional explanation to help the viewer understand a graphic, for example. In your sketch, it is useful to give labels to different objects, because in the steps below you can split up work between team members and the labels will help you connect the UI with the data objects. Show your sketches in section to get feedback from the teaching team.
 
@@ -251,7 +244,6 @@ Get the data ready for use in the dashboard. Before the next stage, you want to 
 The instructor dashboard should show information for all students. The student dashboard is typically focused on an individual student. You can either pick a student (at random or intentionally) and use them as the "reference student" for the student dashboard. Or, a bit more ambitious but also more rewarding to try out, you can create an interactive dashboard in which you select the student and then the dashboard updates to show the information for that student. I would recommend you start with the simpler version and get that to work before you try to make it dynamic.
 
 Use the space below to be ready for your information visualizations in the dashboards.
-
 
 ```{r}
 #######################################
@@ -672,69 +664,84 @@ shinyApp(ui = ui, server = server)
 
 ```{r}
 
-
-# ===============================
-# Student Dashbaord Part 2
-# ===============================
-
-
-
-
-
-
-
-
-
-
-```
-
-```{r}
-
-# ===============================
-# Professor Dashbaord Part 1
-# ===============================
-
 library(shiny)
 library(shinydashboard)
-library(ggplot2)
+library(tidyverse)
 library(DT)
 
-# Load preprocessed data
-session_summary <- readRDS("session_summary.rds")
-student_full_summary <- readRDS("student_full_summary.rds")
+
+# Merge PROG into student_summary
+student_summary <- student_summary %>%
+  left_join(experience %>% select(STUDENT_KEY, PROG), by = "STUDENT_KEY")
 
 # UI
 ui <- dashboardPage(
   dashboardHeader(title = "Instructor Dashboard"),
+  
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Instructor Dashboard", tabName = "instructor", icon = icon("chalkboard-teacher"))
+      menuItem("KPI Overview", tabName = "overview", icon = icon("dashboard")),
+      menuItem("Skill Survey Breakdown", tabName = "skills", icon = icon("bar-chart")),
+      menuItem("Quiz Score Trend", tabName = "quiz_trend", icon = icon("chart-line")),
+      menuItem("Session Attendance Rate", tabName = "session_att", icon = icon("calendar-check")),
+      menuItem("Session Mood Rate", tabName = "session_mood", icon = icon("smile")),
+      menuItem("Student Performance", tabName = "performance", icon = icon("chart-scatter"))
     )
   ),
+  
   dashboardBody(
     tabItems(
+      # KPI Overview
       tabItem(
-        tabName = "instructor",
-        h2("Instructor Dashboard"),
-
-        # KPI Boxes
+        tabName = "overview",
+        h2("Instructor Dashboard KPIs"),
         fluidRow(
-          infoBoxOutput("avgAttendance"),
-          infoBoxOutput("avgScore"),
-          infoBoxOutput("atRiskCount")
+          valueBoxOutput("skill_grad"),
+          valueBoxOutput("skill_ugrad"),
+          valueBoxOutput("quiz_grad")
         ),
-
-        # Session Trends
         fluidRow(
-          box(title = "Attendance Over Time", plotOutput("attendanceTrend"), width = 6),
-          box(title = "Mood (avg_t_clicker) Over Time", plotOutput("moodTrend"), width = 6)
-        ),
-
-        # Performance and Risk Analysis
-        fluidRow(
-          box(title = "Quiz Score Distribution by Session", plotOutput("scoreTrend"), width = 6),
-          box(title = "At-Risk Students", DTOutput("riskTable"), width = 6)
+          valueBoxOutput("att_by_year"),
+          valueBoxOutput("mood_by_year"),
+          valueBoxOutput("quiz_ugrad")
         )
+      ),
+      
+      # Skill Survey
+      tabItem(
+        tabName = "skills",
+        h2("Skill Survey Score by Program"),
+        box(title = "Skill Survey Score Distribution", width = 12, plotOutput("skill_plot"))
+      ),
+      
+      # Quiz Score Trend
+      tabItem(
+        tabName = "quiz_trend",
+        h2("Quiz Score Trend by Year"),
+        box(title = "Trend of Quiz Scores", width = 12, plotOutput("quiz_score_trend_plot"))
+      ),
+      
+      # Attendance Over Time
+      tabItem(
+        tabName = "session_att",
+        h2("Session Attendance Over Time"),
+        box(title = "Session Attendance Rate by Session Number", width = 12, plotOutput("session_att_plot"))
+      ),
+      
+      # Mood Over Time
+      tabItem(
+        tabName = "session_mood",
+        h2("Session Mood Over Time"),
+        box(title = "Average Temperature Responses", width = 12, plotOutput("session_mood_plot"))
+      ),
+      
+      # Student Performance
+      tabItem(
+        tabName = "performance",
+        h2("Student Quiz Performance"),
+        sliderInput("score_threshold", "Highlight students below score:", min = 0, max = 20, value = 5),
+        verbatimTextOutput("student_count"),
+        box(title = "Quiz Score vs Attendance", width = 12, plotOutput("performance_plot"))
       )
     )
   )
@@ -742,56 +749,117 @@ ui <- dashboardPage(
 
 # Server
 server <- function(input, output) {
-
-  output$avgAttendance <- renderInfoBox({
-    avg_att <- mean(session_summary$session_attendance_rate, na.rm = TRUE)
-    infoBox("Avg Attendance", paste0(round(avg_att * 100, 1), "%"), icon = icon("user-check"), color = "aqua")
+  
+  # KPIs
+  output$skill_grad <- renderValueBox({
+    avg <- experience %>% filter(PROG == "GRAD") %>%
+      summarise(m = mean(SKILL_SURVEY_SCORE, na.rm = TRUE)) %>% pull(m)
+    valueBox(round(avg, 1), "Avg Skill Score (GRAD)", icon = icon("user-graduate"), color = "purple")
   })
-
-  output$avgScore <- renderInfoBox({
-    avg_score <- mean(session_summary$avg_quiz_score, na.rm = TRUE)
-    infoBox("Avg Quiz Score", round(avg_score, 1), icon = icon("chart-line"), color = "green")
+  
+  output$skill_ugrad <- renderValueBox({
+    avg <- experience %>% filter(PROG == "UGRAD") %>%
+      summarise(m = mean(SKILL_SURVEY_SCORE, na.rm = TRUE)) %>% pull(m)
+    valueBox(round(avg, 1), "Avg Skill Score (UGRAD)", icon = icon("user"), color = "light-blue")
   })
-
-  output$atRiskCount <- renderInfoBox({
-    at_risk <- student_full_summary %>% filter(student_attendance_rate < 0.7 | avg_quiz_score < 12)
-    infoBox("At-Risk Students", nrow(at_risk), icon = icon("exclamation-triangle"), color = "red")
+  
+  output$quiz_grad <- renderValueBox({
+    avg <- student_summary %>% filter(PROG == "GRAD") %>%
+      summarise(m = mean(avg_quiz_score, na.rm = TRUE)) %>% pull(m)
+    valueBox(round(avg, 1), "Avg Quiz Score (GRAD)", icon = icon("user-graduate"), color = "purple")
   })
-
-  output$attendanceTrend <- renderPlot({
-    ggplot(session_summary, aes(x = SESSION_NUMBER, y = session_attendance_rate)) +
-      geom_line(color = "steelblue") +
-      geom_point() +
-      labs(title = "Attendance Rate per Session", y = "Attendance Rate", x = "Session") +
+  
+  output$quiz_ugrad <- renderValueBox({
+    avg <- student_summary %>% filter(PROG == "UGRAD") %>%
+      summarise(m = mean(avg_quiz_score, na.rm = TRUE)) %>% pull(m)
+    valueBox(round(avg, 1), "Avg Quiz Score (UGRAD)", icon = icon("user"), color = "blue")
+  })
+  
+  output$att_by_year <- renderValueBox({
+    avg_att <- session_summary %>%
+      group_by(YEAR) %>%
+      summarise(att = mean(session_attendance_rate, na.rm = TRUE)) %>%
+      summarise(msg = paste(YEAR, ":", round(att * 100, 1), "%", collapse = " | ")) %>% 
+      pull(msg)
+    valueBox(avg_att, "Avg Attendance Rate by Year", icon = icon("calendar-check"), color = "aqua")
+  })
+  
+  output$mood_by_year <- renderValueBox({
+    avg_mood <- session_summary %>%
+      group_by(YEAR) %>%
+      summarise(mood = mean(avg_temperature, na.rm = TRUE)) %>%
+      summarise(msg = paste(YEAR, ":", round(mood, 1), collapse = " | ")) %>% 
+      pull(msg)
+    valueBox(avg_mood, "Avg Mood by Year", icon = icon("smile"), color = "orange")
+  })
+  
+  # Skill Survey
+  output$skill_plot <- renderPlot({
+    ggplot(experience, aes(x = PROG, y = SKILL_SURVEY_SCORE, fill = PROG)) +
+      geom_boxplot() +
+      labs(title = "Skill Survey Score by Program", x = "Program", y = "Skill Survey Score") +
       theme_minimal()
   })
-
-  output$moodTrend <- renderPlot({
-    ggplot(session_summary, aes(x = SESSION_NUMBER, y = avg_temperature)) +
-      geom_line(color = "tomato") +
+  
+  # Quiz Score Trend
+  output$quiz_score_trend_plot <- renderPlot({
+    ggplot(session_summary, aes(x = SESSION_NUMBER, y = avg_quiz_score, color = as.factor(YEAR))) +
+      geom_line(size = 1.2) +
       geom_point() +
-      labs(title = "Average Mood per Session", y = "Avg Temperature (Mood)", x = "Session") +
+      facet_wrap(~ YEAR) +
+      labs(title = "Quiz Score Trend by Year", x = "Session Number", y = "Average Quiz Score", color = "Year") +
       theme_minimal()
   })
-
-  output$scoreTrend <- renderPlot({
-    ggplot(session_summary, aes(x = SESSION_NUMBER, y = avg_quiz_score)) +
-      geom_line(color = "darkgreen") +
+  
+  # Attendance Over Time
+  output$session_att_plot <- renderPlot({
+    ggplot(session_summary, aes(x = SESSION_NUMBER, y = session_attendance_rate, group = YEAR, color = as.factor(YEAR))) +
+      geom_line(size = 1.2) +
       geom_point() +
-      labs(title = "Quiz Score Trend", y = "Avg Quiz Score", x = "Session") +
+      labs(title = "Session Attendance Rate Over Time", x = "Session Number", y = "Attendance Rate", color = "Year") +
       theme_minimal()
   })
-
-  output$riskTable <- renderDT({
-    student_full_summary %>%
-      filter(student_attendance_rate < 0.7 | avg_quiz_score < 12) %>%
-      select(STUDENT_KEY, student_attendance_rate, avg_quiz_score)
+  
+  # Mood Over Time
+  output$session_mood_plot <- renderPlot({
+    ggplot(session_summary, aes(x = SESSION_NUMBER, y = avg_temperature, group = YEAR, color = as.factor(YEAR))) +
+      geom_line(size = 1.2) +
+      geom_point() +
+      labs(title = "Average Mood Over Time", x = "Session Number", y = "Average Mood", color = "Year") +
+      theme_minimal()
+  })
+  
+  # Student Performance Scatter Plot 
+  output$performance_plot <- renderPlot({
+    req(input$score_threshold)
+    req("PROG" %in% colnames(student_summary))
+    
+    df <- student_summary %>%
+      filter(!is.na(avg_quiz_score), !is.na(student_attendance_rate), !is.na(PROG))
+    
+    if (nrow(df) == 0) return(NULL)
+    
+    ggplot(df, aes(x = student_attendance_rate, y = avg_quiz_score, color = factor(PROG))) +
+      geom_point(size = 3, alpha = 0.8) +
+      geom_hline(yintercept = input$score_threshold, linetype = "dashed", color = "red") +
+      labs(
+        title = "Student Quiz Performance by Attendance",
+        x = "Attendance Rate",
+        y = "Average Quiz Score",
+        color = "Program"
+      ) +
+      theme_minimal()
+  })
+  
+  output$student_count <- renderText({
+    df <- student_summary %>%
+      filter(!is.na(avg_quiz_score), avg_quiz_score < input$score_threshold)
+    paste("Total students below threshold:", nrow(df))
   })
 }
 
-# Run the application
+# Run the app
 shinyApp(ui = ui, server = server)
-
 
 ```
 
