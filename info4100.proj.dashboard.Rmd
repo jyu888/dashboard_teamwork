@@ -670,10 +670,6 @@ library(tidyverse)
 library(DT)
 
 
-# Merge PROG into student_summary
-student_summary <- student_summary %>%
-  left_join(experience %>% select(STUDENT_KEY, PROG), by = "STUDENT_KEY")
-
 # UI
 ui <- dashboardPage(
   dashboardHeader(title = "Instructor Dashboard"),
@@ -685,13 +681,12 @@ ui <- dashboardPage(
       menuItem("Quiz Score Trend", tabName = "quiz_trend", icon = icon("chart-line")),
       menuItem("Session Attendance Rate", tabName = "session_att", icon = icon("calendar-check")),
       menuItem("Session Mood Rate", tabName = "session_mood", icon = icon("smile")),
-      menuItem("Student Performance", tabName = "performance", icon = icon("chart-scatter"))
+      menuItem("Student Performance", tabName = "performance", icon = icon("chart-line"))
     )
   ),
   
   dashboardBody(
     tabItems(
-      # KPI Overview
       tabItem(
         tabName = "overview",
         h2("Instructor Dashboard KPIs"),
@@ -707,35 +702,30 @@ ui <- dashboardPage(
         )
       ),
       
-      # Skill Survey
       tabItem(
         tabName = "skills",
         h2("Skill Survey Score by Program"),
         box(title = "Skill Survey Score Distribution", width = 12, plotOutput("skill_plot"))
       ),
       
-      # Quiz Score Trend
       tabItem(
         tabName = "quiz_trend",
         h2("Quiz Score Trend by Year"),
         box(title = "Trend of Quiz Scores", width = 12, plotOutput("quiz_score_trend_plot"))
       ),
       
-      # Attendance Over Time
       tabItem(
         tabName = "session_att",
         h2("Session Attendance Over Time"),
         box(title = "Session Attendance Rate by Session Number", width = 12, plotOutput("session_att_plot"))
       ),
       
-      # Mood Over Time
       tabItem(
         tabName = "session_mood",
         h2("Session Mood Over Time"),
         box(title = "Average Temperature Responses", width = 12, plotOutput("session_mood_plot"))
       ),
       
-      # Student Performance
       tabItem(
         tabName = "performance",
         h2("Student Quiz Performance"),
@@ -750,45 +740,49 @@ ui <- dashboardPage(
 # Server
 server <- function(input, output) {
   
+  # Join PROG into student_summary
+  student_summary <- student_summary |>
+    left_join(experience |> select(STUDENT_KEY, PROG), by = "STUDENT_KEY")
+  
   # KPIs
   output$skill_grad <- renderValueBox({
-    avg <- experience %>% filter(PROG == "GRAD") %>%
-      summarise(m = mean(SKILL_SURVEY_SCORE, na.rm = TRUE)) %>% pull(m)
+    avg <- experience |> filter(PROG == "GRAD") |>
+      summarise(m = mean(SKILL_SURVEY_SCORE, na.rm = TRUE)) |> pull(m)
     valueBox(round(avg, 1), "Avg Skill Score (GRAD)", icon = icon("user-graduate"), color = "purple")
   })
   
   output$skill_ugrad <- renderValueBox({
-    avg <- experience %>% filter(PROG == "UGRAD") %>%
-      summarise(m = mean(SKILL_SURVEY_SCORE, na.rm = TRUE)) %>% pull(m)
+    avg <- experience |> filter(PROG == "UGRAD") |>
+      summarise(m = mean(SKILL_SURVEY_SCORE, na.rm = TRUE)) |> pull(m)
     valueBox(round(avg, 1), "Avg Skill Score (UGRAD)", icon = icon("user"), color = "light-blue")
   })
   
   output$quiz_grad <- renderValueBox({
-    avg <- student_summary %>% filter(PROG == "GRAD") %>%
-      summarise(m = mean(avg_quiz_score, na.rm = TRUE)) %>% pull(m)
+    avg <- student_summary |> filter(PROG == "GRAD") |>
+      summarise(m = mean(avg_quiz_score, na.rm = TRUE)) |> pull(m)
     valueBox(round(avg, 1), "Avg Quiz Score (GRAD)", icon = icon("user-graduate"), color = "purple")
   })
   
   output$quiz_ugrad <- renderValueBox({
-    avg <- student_summary %>% filter(PROG == "UGRAD") %>%
-      summarise(m = mean(avg_quiz_score, na.rm = TRUE)) %>% pull(m)
+    avg <- student_summary |> filter(PROG == "UGRAD") |>
+      summarise(m = mean(avg_quiz_score, na.rm = TRUE)) |> pull(m)
     valueBox(round(avg, 1), "Avg Quiz Score (UGRAD)", icon = icon("user"), color = "blue")
   })
   
   output$att_by_year <- renderValueBox({
-    avg_att <- session_summary %>%
-      group_by(YEAR) %>%
-      summarise(att = mean(session_attendance_rate, na.rm = TRUE)) %>%
-      summarise(msg = paste(YEAR, ":", round(att * 100, 1), "%", collapse = " | ")) %>% 
+    avg_att <- session_summary |>
+      group_by(YEAR) |>
+      summarise(att = mean(session_attendance_rate, na.rm = TRUE)) |>
+      summarise(msg = paste(YEAR, ":", round(att * 100, 1), "%", collapse = " | ")) |> 
       pull(msg)
     valueBox(avg_att, "Avg Attendance Rate by Year", icon = icon("calendar-check"), color = "aqua")
   })
   
   output$mood_by_year <- renderValueBox({
-    avg_mood <- session_summary %>%
-      group_by(YEAR) %>%
-      summarise(mood = mean(avg_temperature, na.rm = TRUE)) %>%
-      summarise(msg = paste(YEAR, ":", round(mood, 1), collapse = " | ")) %>% 
+    avg_mood <- session_summary |>
+      group_by(YEAR) |>
+      summarise(mood = mean(avg_temperature, na.rm = TRUE)) |>
+      summarise(msg = paste(YEAR, ":", round(mood, 1), collapse = " | ")) |> 
       pull(msg)
     valueBox(avg_mood, "Avg Mood by Year", icon = icon("smile"), color = "orange")
   })
@@ -834,7 +828,7 @@ server <- function(input, output) {
     req(input$score_threshold)
     req("PROG" %in% colnames(student_summary))
     
-    df <- student_summary %>%
+    df <- student_summary |>
       filter(!is.na(avg_quiz_score), !is.na(student_attendance_rate), !is.na(PROG))
     
     if (nrow(df) == 0) return(NULL)
@@ -852,7 +846,7 @@ server <- function(input, output) {
   })
   
   output$student_count <- renderText({
-    df <- student_summary %>%
+    df <- student_summary |>
       filter(!is.na(avg_quiz_score), avg_quiz_score < input$score_threshold)
     paste("Total students below threshold:", nrow(df))
   })
