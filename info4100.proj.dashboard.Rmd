@@ -780,11 +780,17 @@ shinyApp(ui, server)
 *Reflection for the student dashboard*
 
 -   What do you like about it?
-    -   [add your answer here]
+    -   I like how simple the dashboard is, and how clearly it shows the student’s current status compared to the overall class. This kind of visual feedback can really encourage students to improve and stay motivated. [jy965]
+
+
 -   What would you change or add to it if you had more time?
-    -   [add your answer here]
+    -  I’d love to explore the relationship between students’ mood and their quiz outcomes. By visualizing how emotional states align with performance, students can better understand how their well-being impacts learning. This can help them recognize when they’re going through a difficult time and take steps to manage stress or seek support.[jy965]
+
+ 
 -   What was the biggest challenge you faced? How did you address it?
-    -   [add your answer here]
+    -   When students have enough time to reflect, we can also uncover specific features that cater more directly to their needs. For example, by analyzing performance trends and mood data, we might be able to gauge how difficult certain chapters or lectures are. This could help students identify pain points in the curriculum and offer targeted support where it’s most needed.[jy965]
+
+
 
 *Reflection for the teacher dashboard*
 
