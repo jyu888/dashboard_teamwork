@@ -1,6 +1,6 @@
 ---
 title: "Dashboards for Clicker Data"
-author: '[[Xuyuan Liu, xl982][Jiahui, jy965]]'
+author: '[[Xuyuan Liu, xl982][Jiahui, jy965][Shania Cabrera, skc93]]'
 subtitle: INFO 4100 Learning Analytics
 output:
   word_document: default
@@ -55,31 +55,23 @@ The **quiz dataset** contains one record per student per class session held wher
 | total_completed_clicker | numeric | The number of iClicker questions answered by student that session. |
 | completed_q_clicker | numeric | The number of completed Quiz iClicker questions |
 | correct_q_clicker | numeric | How many correct Quiz answers by student that session. |
-| completed_t_clicker | number | How many Temperature questions answered by student that session. Temperature questions are 0-5, 0= bad, 5=great. There is no correct answer to Temperature questions, they are used to guage how students are feeling about a particular subject, assignment, etc. |
+| completed_t_clicker | number | How many Temperature questions answered by student that session. Temperature questions are 0-5, 0= bad, 5=great. There is no correct answer to Temperature questions, they are used to gauge how students are feeling about a particular subject, assignment, etc. |
 | avg_t_clicker | number | The average temperature answer by student for that session. An average of 1 or 2 would be generally negative, while 4 or 5 would be generally positive responses. |
 | quiz_score | numeric | Quiz score out of 20 points possible. |
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
+
 library(tidyverse)
-
-# Below you are loading 2 new packages:shiny + shinydashboard.
-# Install them once, then comment out the install command.
-
-#install.packages("shiny")
-
 library(shiny)
-
-#install.packages("patchwork")
-
 library(patchwork)
-
-#install.packages("shinydashboard")
-
 library(shinydashboard)
 
 # This should load the datasets: 
 # experience (123 by 11) and quiz (2423 by 13)
 load("info4100.proj.dashboard.rda")
+
+# Note: quiz returns (2429 by 13). No duplicates were identified after running "dim(quiz[duplicated(quiz$id),])[1]"
+
 ```
 
 # Part 1: Planning / Sketching
@@ -91,50 +83,85 @@ Go through the planning / sketching process described in the reading about dashb
 *Planning for the student dashboard*
 
 -   For whom? Who will use it and what is their background?
-    -   [For both student and instructors ]
-    -   [Primarily for students enrolled in the Business Intelligence course. These users are undergraduate or graduate students with varying technical backgrounds, some of whom may have limited experience in databases, SQL, or BI tools. They are familiar with iClicker-based participation and receive feedback via online platforms.]
+
+    -   Primarily for students enrolled in the Business Intelligence course. These users are undergraduate or graduate students with varying technical backgrounds, some of whom may have limited experience in databases, SQL, or BI tools. They are familiar with iClicker-based participation and receive feedback via online platforms.
+    -   Instructors may access Student View to assess student's understanding of their (the student's) progress.
+
 -   Why? What is the goal? What questions to answer?
-    -   [To give personalized, actionable feedback on their engagement and performance]
-    -   [Help student self-assess compared and push them to take initiative]
-    -   [Spot and notify students who are falling behind early — for example, low attendance, low quiz scores, or declining temperature scores]
-    -   [Prompt reflection on learning confidence and performance trends over time]
+
+    -   To give personalized, actionable feedback on students' engagement and performance
+    -   Help student self-assess, compare, and push them to take initiative
+    -   Identify and notify students who are falling behind early — notification systems may be informed by low attendance, low quiz scores, or declining temperature scores
+    -   Prompt reflection on learning confidence and performance trends over time
+
 -   What? What data to show and what is its structure?
+
     -   [sum(attended) / total sessions to calculate attendance Rate]
     -   [sum(total_completed_clicker) / sum(total_possible_clicker) for Clicker Response Rate]
     -   [Percentile Ranking in Class: Quiz score percentile]
     -   [Line chart of quiz performance over time with overlay of avg_t_clicker for confidence tracking]
     -   [Skill Radar Chart: Self-reported skill levels compared to class average]
+
 -   How? How will visualizations support the goal?
-    -   [Give a clear visual representation of attendance is dropping at certain points ]
-    -   [Highlight which quizzes/topics need review]
-    -   [Show students positive/negative learning trend using score-over-time visualization with color-coded performance zones]
-    -   [Display comparative context (e.g., class average) anonymously to help students interpret their standing without compromising peer privacy]
+
+    Visualizations support this goal by:
+
+    -   Providing a clear visual representation of attendance is dropping at certain points
+    -   Highlighting which quizzes/topics need review based on student performance
+    -   Communicating positive/negative learning trends to students by using score-over-time visualization with color-coded performance zones
+    -   Displaying comparative context (e.g., class average) anonymously to help students interpret their standing without compromising peer privacy
 
 *Planning for the teacher dashboard*
 
 -   For whom? Who will use it and what is their background?
-    -   [Instructors of the Business Intelligence course at Cornell University]
-    -   [They are experienced educators with interest in student analytics, likely familiar with concepts from BI, and looking for actionable insights to improve teaching and student success]
+    -   Instructors of the Business Intelligence course at Cornell University
+    -   They are experienced educators with interest in student analytics, likely familiar with concepts from BI, and looking for actionable insights to improve teaching and student success
 -   Why? What is the goal? What questions to answer?
-    -   [To monitor overall class engagement, performance, and mood over time]
-    -   [Identify students who are at risk (low attendance and low scores) for early intervention]
-    -   [Understand which topics or sessions led to confusion (via temperature trends and quiz scores)]
-    -   [Assess whether self-reported skill levels correlate with student outcomes]
+    -   To monitor overall class engagement, performance, and mood over time
+    -   Identify students who are at risk (low attendance and low scores) for early intervention
+    -   Understand which topics or sessions led to confusion (via temperature trends and quiz scores)
+    -   Assess whether self-reported skill levels correlate with student outcomes
 -   What? What data to show and what is its structure?
-    -   [Average attendance per session; quiz score distributions per session or per quiz]
-    -   [Heatmaps or timelines of mood trends via avg_t_clicker aggregated by session]
-    -   [Histograms or boxplots of self-reported skill scores, grouped by GRAD/UGRAD]
-    -   [Interactive table of at-risk students (e.g., attendance \< 70%, avg quiz score \< 60%)]
-    -   [Correlation charts between skill_survey_score and engagement/performance metrics]
+    -   Average attendance per session; quiz score distributions per session or per quiz
+    -   Heatmaps or timelines of mood trends via [avg_t_clicker aggregated by session]
+    -   Histograms or boxplots of self-reported skill scores, grouped by GRAD/UGRAD
+    -   Interactive table of at-risk students (e.g., attendance \< 70%, avg quiz score \< 60%)]
+    -   Correlation charts between skill_survey_score and engagement/performance metrics
 -   How? How will visualizations support the goal?
-    -   [Use line charts and heatmaps to show trends across the semester in attendance, quiz performance, and mood—helping instructors identify when and where issues arise]
-    -   [Use boxplots and bar charts to explore the distribution of skills and their relationship to success]
-    -   [Provide interactive filters and sortable tables to easily find and support struggling students]
-    -   [Group visualizations hierarchically (overview \> session detail \> individual student), supporting both broad and granular insights]
+    -   Using line charts and heatmaps to show trends across the semester in attendance, quiz performance, and mood—helping instructors identify when and where issues arise
+    -   Using boxplots and bar charts to explore the distribution of skills and their relationship to success
+    -   Providing interactive filters and sortable tables to easily find and support struggling students
+    -   Grouping visualizations hierarchically (overview \> session detail \> individual student), supporting both broad and granular insights
 
 **Question 2:** Based on your plan above, make a sketch of what the dashboard would look like. See this week's readings for examples. Be detailed about what kinds of data points and visualizations you want to see in different parts of the page. Consider the user experience and how you should position more general information compared to more specific information, and where you may need some additional explanation to help the viewer understand a graphic, for example. In your sketch, it is useful to give labels to different objects, because in the steps below you can split up work between team members and the labels will help you connect the UI with the data objects. Show your sketches in section to get feedback from the teaching team.
 
 Each dashboard should contain at least 4 data visualizations. You may include any additional summary statistics (e.g. key percentages or tables).
+
+## Student Dashboard Sketch
+
+![Student Dashboard](student.jpeg)
+
+The top section introduces general statistics to the student. This would include their attendance rate and relative class percentile placement. Content includes:
+
+-   A personal information header that includes a message with the student's name and key metrics
+
+-   **`stud.attendanceRate`**: Attendance percentage with calendar icon
+
+-   **`stud.percentileRank`**: Class percentile ranking with chart icon
+
+-   **`stud.clickerRate`**: Clicker response rate with checkmark icon
+
+-   **`stud.avgScore`**: Average quiz score with grade icon
+
+The middle section is dedicated to tracking emotions, likely `` stud.moodTrend` `` and i**nst.avgMood.**
+
+Lastly, the Bottom segments are dedicated to comparison of the student's performance alongside the class average and their quiz score along a timeline of the entire course.
+
+The layout follows good UX principles by placing summary metrics at the top and more detailed visualizations below, with clear labeling and explanatory text to help students interpret the data.
+
+## Teacher Dashboard Sketch
+
+![Teacher Dashboard](teacher.jpeg)
 
 # Part 2: Dashboard Wire-frame Implementation
 
@@ -805,16 +832,10 @@ shinyApp(ui, server)
 
 -   What do you like about it?
     -   I like how simple the dashboard is, and how clearly it shows the student’s current status compared to the overall class. This kind of visual feedback can really encourage students to improve and stay motivated. [jy965]
-
-
 -   What would you change or add to it if you had more time?
-    -  I’d love to explore the relationship between students’ mood and their quiz outcomes. By visualizing how emotional states align with performance, students can better understand how their well-being impacts learning. This can help them recognize when they’re going through a difficult time and take steps to manage stress or seek support.[jy965]
-
- 
+    -   I’d love to explore the relationship between students’ mood and their quiz outcomes. By visualizing how emotional states align with performance, students can better understand how their well-being impacts learning. This can help them recognize when they’re going through a difficult time and take steps to manage stress or seek support.[jy965]
 -   What was the biggest challenge you faced? How did you address it?
     -   When students have enough time to reflect, we can also uncover specific features that cater more directly to their needs. For example, by analyzing performance trends and mood data, we might be able to gauge how difficult certain chapters or lectures are. This could help students identify pain points in the curriculum and offer targeted support where it’s most needed.[jy965]
-
-
 
 *Reflection for the teacher dashboard*
 
