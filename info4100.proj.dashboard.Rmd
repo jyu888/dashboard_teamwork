@@ -394,6 +394,8 @@ server = function(input, output) {
 ```{r}
 library(shiny)
 library(shinydashboard)
+library(tidyverse)
+library(patchwork)
 
 ui <- dashboardPage(
   dashboardHeader(title = "Student Dashboard"),
@@ -424,9 +426,10 @@ ui <- dashboardPage(
         tabName = "main",
         h2("General Dashboard Overview"),
         fluidRow(
-          valueBoxOutput("attendance_box"),
-          valueBoxOutput("clicker_box"),
-          valueBoxOutput("correct_box")
+          valueBoxOutput("attendance_box", width = 3),
+          valueBoxOutput("clicker_box", width = 3),
+          valueBoxOutput("correct_box", width = 3),
+          valueBoxOutput("percentile_box", width = 3)
         ),
         fluidRow(
           box(title = "Session Mood Tracker", width = 12, plotOutput("mood_plot_main", height = 300))
@@ -436,6 +439,9 @@ ui <- dashboardPage(
         ),
         fluidRow(
           box(title = "Comparison with Class Average", width = 12, plotOutput("compare_plot_main", height = 300))
+        ),
+        fluidRow(
+          box(title = "Actionable Feedback", width = 12, textOutput("feedback_text"))
         )
       ),
       tabItem(tabName = "mood", h2("Session Mood Tracker"), plotOutput("mood_plot")),
@@ -446,16 +452,12 @@ ui <- dashboardPage(
 )
 
 server <- function(input, output) {
-  library(tidyverse)
-  library(patchwork)
-
+  # Data Preparation
   student_dash <- quiz_clean %>% filter(STUDENT_KEY == 8)
 
   attendance_rate <- mean(student_dash$ATTENDED, na.rm = TRUE)
-
   clicker_response_rate <- if (sum(student_dash$TOTAL_POSSIBLE_CLICKER, na.rm = TRUE) == 0) NA else
     sum(student_dash$TOTAL_COMPLETED_CLICKER, na.rm = TRUE) / sum(student_dash$TOTAL_POSSIBLE_CLICKER, na.rm = TRUE)
-
   correct_answer_rate <- if (sum(student_dash$COMPLETED_Q_CLICKER, na.rm = TRUE) == 0) NA else
     sum(student_dash$CORRECT_Q_CLICKER, na.rm = TRUE) / sum(student_dash$COMPLETED_Q_CLICKER, na.rm = TRUE)
 
@@ -463,6 +465,23 @@ server <- function(input, output) {
     group_by(QUIZ_NUMBER) %>%
     summarise(CLASS_AVG_SCORE = mean(QUIZ_SCORE, na.rm = TRUE), .groups = 'drop')
 
+  # Peer Percentile
+  overall_score <- mean(student_dash$QUIZ_SCORE, na.rm = TRUE)
+  all_student_scores <- quiz_clean %>%
+    group_by(STUDENT_KEY) %>%
+    summarise(AVG_SCORE = mean(QUIZ_SCORE, na.rm = TRUE), .groups = 'drop')
+  peer_percentile <- ecdf(all_student_scores$AVG_SCORE)(overall_score) * 100
+
+  # Feedback Message
+  feedback <- if (correct_answer_rate < 0.5) {
+    "Your correct answer rate is low. Review questions you got wrong and consider attending office hours."
+  } else if (clicker_response_rate < 0.5) {
+    "Try to engage more with clicker questions during sessions to improve participation."
+  } else {
+    "You're doing well across key metrics! Keep up the consistency."
+  }
+
+  # Plot Functions
   mood_plot_func <- function() {
     student_with_class <- student_dash %>%
       filter(ATTENDED == 1) %>%
@@ -479,24 +498,19 @@ server <- function(input, output) {
   }
 
   quiz_plot_func <- function() {
-  student_with_avg <- student_dash %>%
-    arrange(ACAD_DATE_KEY) %>%
-    left_join(class_avg, by = "QUIZ_NUMBER") %>%
-    mutate(ACAD_DATE_KEY = as.Date(as.character(ACAD_DATE_KEY), format = "%Y%m%d"))
+    student_with_avg <- student_dash %>%
+      arrange(ACAD_DATE_KEY) %>%
+      left_join(class_avg, by = "QUIZ_NUMBER") %>%
+      mutate(ACAD_DATE_KEY = as.Date(as.character(ACAD_DATE_KEY), format = "%Y%m%d"))
 
-  ggplot(student_with_avg, aes(x = ACAD_DATE_KEY)) +
-    geom_line(aes(y = QUIZ_SCORE, color = "Student Score"), linewidth = 1) +
-    geom_line(aes(y = CLASS_AVG_SCORE, color = "Class Average"), linewidth = 1, linetype = "dashed") +
-    geom_point(aes(y = QUIZ_SCORE, color = "Student Score")) +
-    labs(
-      title = "Quiz Score Timeline vs Class Average",
-      x = "Academic Date",
-      y = "Quiz Score (out of 20)",
-      color = "Legend"
-    ) +
-    scale_color_manual(values = c("Student Score" = "blue", "Class Average" = "red")) +
-    theme_minimal()
-}
+    ggplot(student_with_avg, aes(x = ACAD_DATE_KEY)) +
+      geom_line(aes(y = QUIZ_SCORE, color = "Student Score"), linewidth = 1) +
+      geom_line(aes(y = CLASS_AVG_SCORE, color = "Class Average"), linewidth = 1, linetype = "dashed") +
+      geom_point(aes(y = QUIZ_SCORE, color = "Student Score")) +
+      labs(title = "Quiz Score Timeline vs Class Average", x = "Academic Date", y = "Quiz Score (out of 20)", color = "Legend") +
+      scale_color_manual(values = c("Student Score" = "blue", "Class Average" = "red")) +
+      theme_minimal()
+  }
 
   compare_plot_func <- function() {
     student_vs_class <- student_dash %>%
@@ -511,14 +525,15 @@ server <- function(input, output) {
       theme_minimal()
   }
 
+  # Render Plots (Main and Tab Views)
   output$mood_plot_main <- renderPlot({ mood_plot_func() })
   output$quiz_plot_main <- renderPlot({ quiz_plot_func() })
   output$compare_plot_main <- renderPlot({ compare_plot_func() })
-
   output$mood_plot <- renderPlot({ mood_plot_func() })
   output$quiz_plot <- renderPlot({ quiz_plot_func() })
   output$compare_plot <- renderPlot({ compare_plot_func() })
 
+  # Render Value Boxes
   output$attendance_box <- renderValueBox({
     valueBox(paste0(round(attendance_rate * 100, 1), "%"), "Attendance Rate", icon = icon("calendar-check"), color = "aqua")
   })
@@ -530,9 +545,18 @@ server <- function(input, output) {
   output$correct_box <- renderValueBox({
     valueBox(paste0(round(correct_answer_rate * 100, 1), "%"), "Correct Answer Rate", icon = icon("check-circle"), color = "blue")
   })
+
+  output$percentile_box <- renderValueBox({
+    valueBox(paste0(round(peer_percentile, 1), "th"), "Your Class Percentile", icon = icon("user-graduate"), color = "yellow")
+  })
+
+  # Render Feedback Text
+  output$feedback_text <- renderText({ feedback })
 }
 
+shinyApp(ui, server)
 
+  
 # ===== Run the App =====
 shinyApp(ui = ui, server = server)
 
