@@ -1,6 +1,6 @@
 ---
 title: "Dashboards for Clicker Data"
-author: '[[Xuyuan Liu, xl982]]'
+author: '[[Xuyuan Liu, xl982][Jiahui, jy965]]'
 subtitle: INFO 4100 Learning Analytics
 output:
   word_document: default
@@ -392,267 +392,144 @@ server = function(input, output) {
 ```
 
 ```{r}
-
-
-# ===============================
-# Student Dashbaord Part 1
-# ===============================
-
 library(shiny)
 library(shinydashboard)
 
 ui <- dashboardPage(
   dashboardHeader(title = "Student Dashboard"),
-  
+
   dashboardSidebar(
     sidebarMenu(
       menuItem("General Dashboard", tabName = "main", icon = icon("dashboard")),
-      menuItem("Attendance Rate", tabName = "attendance", icon = icon("calendar-check")),
-      menuItem("Clicker Response Rate", tabName = "clicker", icon = icon("reply")),
-      menuItem("Correct Answer Rate", tabName = "correct", icon = icon("check-circle")),
       menuItem("Session Mood Tracker", tabName = "mood", icon = icon("smile")),
       menuItem("Quiz Score Timeline", tabName = "quiz", icon = icon("chart-line")),
       menuItem("Comparison with Class Average", tabName = "comparison", icon = icon("balance-scale"))
     )
   ),
-  
+
   dashboardBody(
     tags$head(
       tags$style(HTML("
         h2 {
           text-align: center;
-          font-weight: bold;
+          font-weight: semi-bold;
+          padding-top: 0px;
+          padding-bottom: 30px;
         }
       "))
     ),
-    
+
     tabItems(
-      
-      # ----- General Dashboard -----
       tabItem(
         tabName = "main",
         h2("General Dashboard Overview"),
-        
-        # Row 1: ValueBoxes
         fluidRow(
           valueBoxOutput("attendance_box"),
           valueBoxOutput("clicker_box"),
           valueBoxOutput("correct_box")
         ),
-        
-        # Row 2: Mood Tracker Plot
         fluidRow(
-          box(
-            title = "Session Mood Tracker",
-            width = 12,
-            plotOutput("mood_plot_main", height = 300)
-          )
+          box(title = "Session Mood Tracker", width = 12, plotOutput("mood_plot_main", height = 300))
         ),
-        
-        # Row 3: Quiz Score Timeline Plot
         fluidRow(
-          box(
-            title = "Quiz Score Timeline",
-            width = 12,
-            plotOutput("quiz_plot_main", height = 300)
-          )
+          box(title = "Quiz Score Timeline", width = 12, plotOutput("quiz_plot_main", height = 300))
         ),
-        
-        # Row 4: Comparison with Class Average Plot
         fluidRow(
-          box(
-            title = "Comparison with Class Average",
-            width = 12,
-            plotOutput("compare_plot_main", height = 300)
-          )
+          box(title = "Comparison with Class Average", width = 12, plotOutput("compare_plot_main", height = 300))
         )
       ),
-      
-      # ----- Individual Tabs -----
-      tabItem(
-        tabName = "attendance",
-        h2("Attendance Rate"),
-        valueBoxOutput("attendance_box_only")
-      ),
-      
-      tabItem(
-        tabName = "clicker",
-        h2("Clicker Response Rate"),
-        valueBoxOutput("clicker_box_only")
-      ),
-      
-      tabItem(
-        tabName = "mood",
-        h2("Session Mood Tracker"),
-        plotOutput("mood_plot")
-      ),
-      
-      tabItem(
-        tabName = "quiz",
-        h2("Quiz Score Timeline"),
-        plotOutput("quiz_plot")
-      ),
-      
-      tabItem(
-        tabName = "correct",
-        h2("Correct Answer Rate"),
-        valueBoxOutput("correct_box_only")
-      ),
-      
-      tabItem(
-        tabName = "comparison",
-        h2("Comparison with Class Average"),
-        plotOutput("compare_plot")
-      )
+      tabItem(tabName = "mood", h2("Session Mood Tracker"), plotOutput("mood_plot")),
+      tabItem(tabName = "quiz", h2("Quiz Score Timeline"), plotOutput("quiz_plot")),
+      tabItem(tabName = "comparison", h2("Comparison with Class Average"), plotOutput("compare_plot"))
     )
   )
 )
 
-
-#========server==========
-
 server <- function(input, output) {
-  
   library(tidyverse)
   library(patchwork)
-  
-  # --- Student data ---
-  student_id <- 1
-  student_dash <- quiz_clean %>% filter(STUDENT_KEY == student_id)
-  
-  # --- Metrics ---
+
+  student_dash <- quiz_clean %>% filter(STUDENT_KEY == 8)
+
   attendance_rate <- mean(student_dash$ATTENDED, na.rm = TRUE)
-  
-  clicker_response_rate <- ifelse(
-    sum(student_dash$TOTAL_POSSIBLE_CLICKER, na.rm = TRUE) == 0,
-    NA,
-    sum(student_dash$TOTAL_COMPLETED_CLICKER, na.rm = TRUE) / 
-    sum(student_dash$TOTAL_POSSIBLE_CLICKER, na.rm = TRUE)
-  )
-  
-  correct_answer_rate <- ifelse(
-    sum(student_dash$COMPLETED_Q_CLICKER, na.rm = TRUE) == 0,
-    NA,
-    sum(student_dash$CORRECT_Q_CLICKER, na.rm = TRUE) / 
-    sum(student_dash$COMPLETED_Q_CLICKER, na.rm = TRUE)
-  )
-  
-  # --- Class average comparison ---
+
+  clicker_response_rate <- if (sum(student_dash$TOTAL_POSSIBLE_CLICKER, na.rm = TRUE) == 0) NA else
+    sum(student_dash$TOTAL_COMPLETED_CLICKER, na.rm = TRUE) / sum(student_dash$TOTAL_POSSIBLE_CLICKER, na.rm = TRUE)
+
+  correct_answer_rate <- if (sum(student_dash$COMPLETED_Q_CLICKER, na.rm = TRUE) == 0) NA else
+    sum(student_dash$CORRECT_Q_CLICKER, na.rm = TRUE) / sum(student_dash$COMPLETED_Q_CLICKER, na.rm = TRUE)
+
   class_avg <- quiz_clean %>%
     group_by(QUIZ_NUMBER) %>%
     summarise(CLASS_AVG_SCORE = mean(QUIZ_SCORE, na.rm = TRUE), .groups = 'drop')
-  
-  student_vs_class <- student_dash %>%
-    select(QUIZ_NUMBER, QUIZ_SCORE) %>%
-    left_join(class_avg, by = "QUIZ_NUMBER")
-  
-  # --- Plot functions ---
+
   mood_plot_func <- function() {
-    ggplot(student_dash %>% filter(ATTENDED == 1) %>% arrange(SESSION_NUMBER),
-           aes(x = SESSION_NUMBER, y = AVG_T_CLICKER)) +
-      geom_line(linewidth = 1) +
-      geom_point() +
-      labs(
-        title = "Session Mood Tracker",
-        x = "Session Number",
-        y = "Average Mood (0-5)"
-      ) +
+    student_with_class <- student_dash %>%
+      filter(ATTENDED == 1) %>%
+      arrange(SESSION_NUMBER) %>%
+      left_join(session_summary %>% select(SESSION_NUMBER, avg_temperature), by = "SESSION_NUMBER")
+
+    ggplot(student_with_class, aes(x = SESSION_NUMBER)) +
+      geom_line(aes(y = AVG_T_CLICKER, color = "Student Mood"), linewidth = 1) +
+      geom_line(aes(y = avg_temperature, color = "Class Average"), linewidth = 1, linetype = "dashed") +
+      geom_point(aes(y = AVG_T_CLICKER, color = "Student Mood")) +
+      labs(title = "Session Mood Tracker vs Class Average", x = "Session Number", y = "Average Mood (0–5)", color = "Legend") +
+      scale_color_manual(values = c("Student Mood" = "blue", "Class Average" = "red")) +
       theme_minimal()
   }
-  
+
   quiz_plot_func <- function() {
-    ggplot(student_dash %>% arrange(QUIZ_NUMBER),
-           aes(x = QUIZ_NUMBER, y = QUIZ_SCORE)) +
-      geom_line(linewidth = 1) +
-      geom_point() +
-      labs(
-        title = "Quiz Score Timeline",
-        x = "Quiz Number",
-        y = "Quiz Score (out of 20)"
-      ) +
-      theme_minimal()
-  }
-  
+  student_with_avg <- student_dash %>%
+    arrange(ACAD_DATE_KEY) %>%
+    left_join(class_avg, by = "QUIZ_NUMBER") %>%
+    mutate(ACAD_DATE_KEY = as.Date(as.character(ACAD_DATE_KEY), format = "%Y%m%d"))
+
+  ggplot(student_with_avg, aes(x = ACAD_DATE_KEY)) +
+    geom_line(aes(y = QUIZ_SCORE, color = "Student Score"), linewidth = 1) +
+    geom_line(aes(y = CLASS_AVG_SCORE, color = "Class Average"), linewidth = 1, linetype = "dashed") +
+    geom_point(aes(y = QUIZ_SCORE, color = "Student Score")) +
+    labs(
+      title = "Quiz Score Timeline vs Class Average",
+      x = "Academic Date",
+      y = "Quiz Score (out of 20)",
+      color = "Legend"
+    ) +
+    scale_color_manual(values = c("Student Score" = "blue", "Class Average" = "red")) +
+    theme_minimal()
+}
+
   compare_plot_func <- function() {
-    ggplot(student_vs_class %>% arrange(QUIZ_NUMBER), aes(x = QUIZ_NUMBER)) +
+    student_vs_class <- student_dash %>%
+      select(QUIZ_NUMBER, QUIZ_SCORE) %>%
+      left_join(class_avg, by = "QUIZ_NUMBER")
+
+    ggplot(student_vs_class, aes(x = QUIZ_NUMBER)) +
       geom_line(aes(y = QUIZ_SCORE, color = "Student Score"), linewidth = 1.2) +
       geom_line(aes(y = CLASS_AVG_SCORE, color = "Class Average"), linewidth = 1.2, linetype = "dashed") +
       scale_color_manual(values = c("Student Score" = "blue", "Class Average" = "red")) +
-      labs(
-        title = "Comparison with Class Average",
-        x = "Quiz Number",
-        y = "Quiz Score (out of 20)",
-        color = "Legend"
-      ) +
+      labs(title = "Comparison with Class Average", x = "Quiz Number", y = "Quiz Score (out of 20)", color = "Legend") +
       theme_minimal()
   }
-  
-  # --- Render Main Dashboard Plots ---
+
   output$mood_plot_main <- renderPlot({ mood_plot_func() })
   output$quiz_plot_main <- renderPlot({ quiz_plot_func() })
   output$compare_plot_main <- renderPlot({ compare_plot_func() })
-  
-  # --- Render Individual Plots ---
+
   output$mood_plot <- renderPlot({ mood_plot_func() })
   output$quiz_plot <- renderPlot({ quiz_plot_func() })
   output$compare_plot <- renderPlot({ compare_plot_func() })
-  
-  # --- Render Main ValueBoxes ---
+
   output$attendance_box <- renderValueBox({
-    valueBox(
-      paste0(round(attendance_rate * 100, 1), "%"),
-      "Attendance Rate",
-      icon = icon("calendar-check"),
-      color = "aqua"
-    )
+    valueBox(paste0(round(attendance_rate * 100, 1), "%"), "Attendance Rate", icon = icon("calendar-check"), color = "aqua")
   })
-  
+
   output$clicker_box <- renderValueBox({
-    valueBox(
-      paste0(round(clicker_response_rate * 100, 1), "%"),
-      "Clicker Response Rate",
-      icon = icon("reply"),
-      color = "light-blue"
-    )
+    valueBox(paste0(round(clicker_response_rate * 100, 1), "%"), "Clicker Response Rate", icon = icon("reply"), color = "light-blue")
   })
-  
+
   output$correct_box <- renderValueBox({
-    valueBox(
-      paste0(round(correct_answer_rate * 100, 1), "%"),
-      "Correct Answer Rate",
-      icon = icon("check-circle"),
-      color = "green"
-    )
+    valueBox(paste0(round(correct_answer_rate * 100, 1), "%"), "Correct Answer Rate", icon = icon("check-circle"), color = "blue")
   })
-  
-  # --- Render Separate ValueBoxes for Tabs ---
-  output$attendance_box_only <- renderValueBox({
-    valueBox(
-      paste0(round(attendance_rate * 100, 1), "%"),
-      "Attendance Rate",
-      icon = icon("calendar-check"),
-      color = "aqua"
-    )
-  })
-  
-  output$clicker_box_only <- renderValueBox({
-    valueBox(
-      paste0(round(clicker_response_rate * 100, 1), "%"),
-      "Clicker Response Rate",
-      icon = icon("reply"),
-      color = "light-blue"
-    )
-  })
-  
-  output$correct_box_only <- renderValueBox({
-    valueBox(
-      paste0(round(correct_answer_rate * 100, 1), "%"),
-      "Correct Answer Rate",
-      icon = icon("check-circle"),
-      color = "green"
-    )
-  })
-  
 }
 
 
