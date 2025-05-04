@@ -1,6 +1,6 @@
 ---
 title: "Dashboards for Clicker Data"
-author: '[[Xuyuan Liu, xl982][Jiahui, jy965][Shania Cabrera, skc93]]'
+author: '[[Xuyuan Liu, xl982][Jiahui, jy965][Shania Cabrera, skc93][Amparo Averbuj, aa2733][Bakhtawar Ahtisham, ba453]]'
 subtitle: INFO 4100 Learning Analytics
 output:
   word_document: default
@@ -153,15 +153,23 @@ The top section introduces general statistics to the student. This would include
 
 -   **`stud.avgScore`**: Average quiz score with grade icon
 
-The middle section is dedicated to tracking emotions, likely `` stud.moodTrend` `` and i**nst.avgMood.**
+The middle section is dedicated to tracking emotions, likely `` stud.moodTrend` `` and i**nst.avgMood.** Lastly, the Bottom segments are dedicated to comparison of the student's performance alongside the class average and their quiz score along a timeline of the entire course.
 
-Lastly, the Bottom segments are dedicated to comparison of the student's performance alongside the class average and their quiz score along a timeline of the entire course.
-
-The layout follows good UX principles by placing summary metrics at the top and more detailed visualizations below, with clear labeling and explanatory text to help students interpret the data.
+This layout follows good UX principles by following external standardization (ex: usage of the universal hamburger icon for a menu) and natural mapping. Natural mapping is applied by following the top-to-bottom and left-to-right reading structure in Western culture. In this case, the summary metrics are placed at the top and more detailed visualizations are placed below, with clear labeling and explanatory text.
 
 ## Teacher Dashboard Sketch
 
 ![Teacher Dashboard](teacher.jpeg)
+
+This segment provides an overview on classroom performance by comparing undergraduate and graduate students, and course performance by year.
+
+-   The Average skill score is used to inform the data visualization, which will report the different scores between graduate and undergraduates
+
+-   The Quiz score section follows this same logic **`stud.avgScore`**: Average quiz score with grade icon)
+
+-   **`stud.attendanceRate`**: Attendance percentage with calendar icon, compared by years
+
+-   Lastly, the instructors may evaluate the average mood of students in a single class year, and may compare it with other class years
 
 # Part 2: Dashboard Wire-frame Implementation
 
@@ -840,23 +848,24 @@ shinyApp(ui, server)
 *Reflection for the teacher dashboard*
 
 -   What do you like about it?
-    -   [add your answer here]
+    -   This dashboard includes an appropriate amount of features that a teacher would need. For instance, they may take a look at class averages at a single glance. The instructor may also be able to determine progress in their teaching style per year by evaluating their students' performances and moods.
 -   What would you change or add to it if you had more time?
-    -   [add your answer here]
+    -   It would be helpful to add more time-specific references, so instructors can easily look back at the materials they delivered on a particular day.t would be helpful to add more time-specific references, so instructors can easily look back at the materials they delivered on a particular day.
 -   What was the biggest challenge you faced? How did you address it?
-    -   [add your answer here]
+    -   Up to this point, our main difficulties have stemmed from challenges in collaboration.
 
 # Self-reflection
 
 **Briefly summarize your experience on this homework. What was easy, what was hard, what did you learn?**
 
 -   Insert your self-reflection here; it is used to improve the homework and course materials.
+-   The difficulty of this homework varied by task. Preparing the data to be ready for dashboard usage was quite straightforward. However, properly defining features for each respective dashboard took some time. It was mostly difficult to find proper collaboration times during the end of the semester when many final projects and exams coincided.
 
 # Estimate time spent
 
 **We want to give students an estimate of how much time this homework will take. Please indicate how many hours you spent to complete this homework here.**
 
--   I spent [insert your time] hours.
+-   15 hours.
 
 # Generative AI usage
 
