@@ -832,7 +832,18 @@ shinyApp(ui, server)
 
 **Question 5:** Add screenshots of your group's dahsboards below using this syntax or simply add them to the Word document after knitting:
 
-![Dashboard Screenshot](example_dash.png)
+
+![General Dashboard Overview](1.jpg)
+
+ ![Session Mood Tracker](2.jpg)
+ ![Quiz Score Timeline](3.jpg)
+ ![Comparison with Class Average](4.jpg)
+ ![Instructor Dasboard KPIs](5.jpg)
+ ![Skill Survey Score by Program](6.jpg)
+ ![Quiz Score Trend by Year](7.jpg)
+![Session Attendance Over Time](8.jpg)
+![Session Mood Over Time](9.jpg)
+![Student Quiz Performance](10.jpg)
 
 **Question 6:** Evaluate your group dashboard from the perspective of the instructor (teacher dashboard) and from the perspective of the student (student dashboard). What do you like about it, what would you change or add to it if you had more time?
 
